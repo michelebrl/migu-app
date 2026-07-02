@@ -23,6 +23,7 @@
           <button class="nav-item" data-view="budget">Orcamentos</button>
           <button class="nav-item" data-view="finance">Financeiro</button>
           <button class="nav-item" data-view="debts">Dividas</button>
+          <button class="nav-item" data-view="homeCosts">Moradia</button>
           <button class="nav-item" data-view="simulator">Simulador</button>
           <button class="nav-item" data-view="settings">Editar app</button>
         </nav>
@@ -118,6 +119,22 @@
             </form>
           </div>
           <div class="category-summary" id="categorySummary"></div>
+          <div class="two-col">
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Falta comprar</h3>
+                <span>Marque quando ja tiver</span>
+              </div>
+              <div class="check-list" id="missingChecklist"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Ja tenho</h3>
+                <span>Desmarque se voltar para a lista</span>
+              </div>
+              <div class="check-list" id="ownedChecklist"></div>
+            </section>
+          </div>
           <div class="kanban" id="furnitureBoard"></div>
         </section>
 
@@ -151,13 +168,27 @@
             <form class="form-grid wide" id="personForm">
               <input type="hidden" name="id">
               <label>Nome<input name="name" required placeholder="Mi"></label>
-              <label>Receita mensal<input name="income" type="number" min="0"></label>
-              <label>Gastos fixos<input name="fixedCosts" type="number" min="0"></label>
+              <label>Gastos fixos pessoais<input name="fixedCosts" type="number" min="0"></label>
               <button type="submit">Salvar pessoa</button>
               <button type="button" id="cancelPersonEdit" class="secondary hidden-field">Cancelar</button>
             </form>
           </div>
           <div class="grid cards" id="personList"></div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Receitas</h3>
+              <span>Salario, vale alimentacao, extras e outros</span>
+            </div>
+            <form class="form-grid wide" id="incomeForm">
+              <input type="hidden" name="id">
+              <label>Pessoa<select name="person" id="incomePersonSelect"></select></label>
+              <label>Tipo<select name="type"><option>Salario</option><option>Vale alimentacao</option><option>Extra</option><option>Beneficio</option><option>Outro</option></select></label>
+              <label>Valor<input name="amount" type="number" min="0"></label>
+              <button type="submit">Salvar receita</button>
+              <button type="button" id="cancelIncomeEdit" class="secondary hidden-field">Cancelar</button>
+            </form>
+          </div>
+          <div class="grid cards" id="incomeList"></div>
           <div class="grid metrics" id="financeCards"></div>
         </section>
 
@@ -183,6 +214,26 @@
           </div>
           <div class="debt-groups" id="debtGroups"></div>
           <div class="grid cards" id="debtList"></div>
+        </section>
+
+        <section class="view" id="homeCosts">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Quanto podemos gastar</h3>
+              <span>Baseado em renda, dividas e meta</span>
+            </div>
+            <form class="form-grid wide" id="homeCostForm">
+              <label>Aluguel desejado<input name="rent" type="number" min="0"></label>
+              <label>Agua<input name="water" type="number" min="0"></label>
+              <label>Luz<input name="power" type="number" min="0"></label>
+              <label>Internet<input name="internet" type="number" min="0"></label>
+              <label>Compras mercado<input name="groceries" type="number" min="0"></label>
+              <label>Outros da casa<input name="other" type="number" min="0"></label>
+              <button type="submit">Salvar moradia</button>
+            </form>
+          </div>
+          <div class="grid metrics" id="homeCostCards"></div>
+          <div class="grid cards" id="homeCostSplit"></div>
         </section>
 
         <section class="view" id="simulator">
@@ -224,10 +275,17 @@
             </div>
             <div class="compact-list" id="cardOrder"></div>
           </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Textos e titulos</h3>
+              <span>Edite frases do app</span>
+            </div>
+            <form class="form-grid wide" id="textForm"></form>
+          </div>
         </section>
       </main>
     </div>
 
-    <script src="./app.js?v=migu-financeiro-listas-20260702"></script>
+    <script src="./app.js?v=migu-moradia-receitas-textos-20260702"></script>
   </body>
 </html>
