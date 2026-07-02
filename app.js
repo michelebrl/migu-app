@@ -51,9 +51,30 @@ const defaultState = {
     plannedMonthly: 5200
   },
   people: [
-    { id: crypto.randomUUID(), name: "Mi", income: 1500, fixedCosts: 1800 },
-    { id: crypto.randomUUID(), name: "Gu", income: 3500, fixedCosts: 2300 }
+    { id: crypto.randomUUID(), name: "Mi", fixedCosts: 1800 },
+    { id: crypto.randomUUID(), name: "Gu", fixedCosts: 2300 }
   ],
+  incomes: [
+    { id: crypto.randomUUID(), person: "Mi", type: "Salario", amount: 1500 },
+    { id: crypto.randomUUID(), person: "Gu", type: "Salario", amount: 3500 },
+    { id: crypto.randomUUID(), person: "Mi", type: "Vale alimentacao", amount: 600 }
+  ],
+  homeCosts: { rent: 1600, water: 120, power: 220, internet: 120, groceries: 900, other: 200 },
+  texts: {
+    brandSubtitle: "Plano para morar juntos",
+    dashboardTitle: "Inicio",
+    furnitureTitle: "Moveis",
+    budgetTitle: "Orcamentos",
+    financeTitle: "Financeiro",
+    debtsTitle: "Dividas",
+    homeCostsTitle: "Moradia",
+    simulatorTitle: "Simulador",
+    settingsTitle: "Editar app",
+    heroGreen: "O plano fecha para a data de voces.",
+    heroYellow: "Esta quase fechando, falta ajustar um pouco.",
+    heroRed: "A meta precisa de um novo combinado.",
+    cofrinhoTitle: "Cofrinho"
+  },
   savings: [
     { id: crypto.randomUUID(), person: "Mi", amount: 6500, note: "Guardado inicial", date: "2026-06-25" },
     { id: crypto.randomUUID(), person: "Gu", amount: 6000, note: "Guardado inicial", date: "2026-06-25" }
@@ -95,13 +116,21 @@ function migrateState(oldState) {
   };
 
   if (Array.isArray(oldState.people)) {
-    next.people = oldState.people.map(person => ({ id: person.id || crypto.randomUUID(), name: person.name || "Pessoa", income: Number(person.income || 0), fixedCosts: Number(person.fixedCosts || 0) }));
+    next.people = oldState.people.map(person => ({ id: person.id || crypto.randomUUID(), name: person.name || "Pessoa", fixedCosts: Number(person.fixedCosts || 0) }));
+    next.incomes = Array.isArray(oldState.incomes) ? oldState.incomes : oldState.people.map(person => ({ id: crypto.randomUUID(), person: person.name || "Pessoa", type: "Salario", amount: Number(person.income || 0) }));
   } else if (oldState.finance) {
     next.people = [
-      { id: crypto.randomUUID(), name: "Pessoa 1", income: Number(oldState.finance.incomeA || 0), fixedCosts: Math.round(Number(oldState.finance.fixedCosts || 0) / 2) },
-      { id: crypto.randomUUID(), name: "Pessoa 2", income: Number(oldState.finance.incomeB || 0), fixedCosts: Math.round(Number(oldState.finance.fixedCosts || 0) / 2) }
+      { id: crypto.randomUUID(), name: "Pessoa 1", fixedCosts: Math.round(Number(oldState.finance.fixedCosts || 0) / 2) },
+      { id: crypto.randomUUID(), name: "Pessoa 2", fixedCosts: Math.round(Number(oldState.finance.fixedCosts || 0) / 2) }
+    ];
+    next.incomes = [
+      { id: crypto.randomUUID(), person: "Pessoa 1", type: "Salario", amount: Number(oldState.finance.incomeA || 0) },
+      { id: crypto.randomUUID(), person: "Pessoa 2", type: "Salario", amount: Number(oldState.finance.incomeB || 0) }
     ];
   }
+  if (Array.isArray(oldState.incomes)) next.incomes = oldState.incomes.map(income => ({ id: income.id || crypto.randomUUID(), person: income.person || next.people[0]?.name || "Pessoa", type: income.type || "Salario", amount: Number(income.amount || 0) }));
+  next.homeCosts = { ...next.homeCosts, ...(oldState.homeCosts || {}) };
+  next.texts = { ...next.texts, ...(oldState.texts || {}) };
 
   next.savings = Array.isArray(oldState.savings) ? oldState.savings : [
     { id: crypto.randomUUID(), person: next.people[0]?.name || "Casal", amount: Number(oldState.goal?.saved || 0), note: "Valor guardado", date: "2026-06-25" }
@@ -182,7 +211,7 @@ function calc() {
   const missing = Math.max(0, goalTotal - saved);
   const months = monthsUntil(state.goal.moveDate);
   const neededMonthly = missing / months;
-  const income = state.people.reduce((sum, person) => sum + Number(person.income || 0), 0);
+  const income = state.incomes.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
   const fixedCosts = state.people.reduce((sum, person) => sum + Number(person.fixedCosts || 0), 0);
   const commitments = fixedCosts + debtMonthlyTotal();
   const surplus = income - commitments;
@@ -201,7 +230,8 @@ function applyTheme() {
 function render() {
   applyTheme();
   document.body.classList.toggle("editing", editing);
-  document.getElementById("screenTitle").textContent = activeView === "dashboard" ? state.settings.homeTitle : titleFor(activeView);
+  renderEditableTexts();
+  document.getElementById("screenTitle").textContent = activeView === "dashboard" ? state.texts.dashboardTitle : titleFor(activeView);
   populateSelects();
   renderForms();
   renderDashboard();
@@ -209,17 +239,38 @@ function render() {
   renderBudgets();
   renderFinance();
   renderDebts();
+  renderHomeCosts();
   renderSettings();
 }
 
+function renderEditableTexts() {
+  document.querySelector(".brand span").textContent = state.texts.brandSubtitle;
+  const labels = {
+    dashboard: state.texts.dashboardTitle,
+    furniture: state.texts.furnitureTitle,
+    budget: state.texts.budgetTitle,
+    finance: state.texts.financeTitle,
+    debts: state.texts.debtsTitle,
+    homeCosts: state.texts.homeCostsTitle,
+    simulator: state.texts.simulatorTitle,
+    settings: state.texts.settingsTitle
+  };
+  Object.entries(labels).forEach(([view, label]) => {
+    const button = document.querySelector(`.nav-item[data-view="${view}"]`);
+    if (button) button.textContent = label;
+  });
+}
+
 function titleFor(view) {
+  const t = state.texts || defaultState.texts;
   return {
-    furniture: "Moveis",
-    budget: "Orcamentos",
-    finance: "Financeiro",
-    debts: "Dividas",
-    simulator: "Simulador",
-    settings: "Editar app"
+    furniture: t.furnitureTitle,
+    budget: t.budgetTitle,
+    finance: t.financeTitle,
+    debts: t.debtsTitle,
+    homeCosts: t.homeCostsTitle,
+    simulator: t.simulatorTitle,
+    settings: t.settingsTitle
   }[view] || "Inicio";
 }
 
@@ -229,6 +280,7 @@ function populateSelects() {
   const personOptions = state.people.map(person => `<option>${person.name}</option>`).join("");
   document.getElementById("savingPersonSelect").innerHTML = personOptions;
   document.getElementById("debtOwnerSelect").innerHTML = personOptions || "<option>Casal</option>";
+  document.getElementById("incomePersonSelect").innerHTML = personOptions;
 }
 
 function renderForms() {
@@ -245,6 +297,11 @@ function renderForms() {
   settingsForm.primary.value = state.settings.primary;
   settingsForm.accent.value = state.settings.accent;
   settingsForm.theme.value = state.settings.theme;
+
+  const homeCostForm = document.getElementById("homeCostForm");
+  Object.entries(state.homeCosts).forEach(([key, value]) => {
+    if (homeCostForm.elements[key]) homeCostForm.elements[key].value = value;
+  });
 }
 
 function renderDashboard() {
@@ -252,7 +309,7 @@ function renderDashboard() {
   const signal = document.getElementById("goalSignal");
   signal.querySelector("strong").textContent = data.signal;
   signal.style.background = data.signal === "Verde" ? "var(--green)" : data.signal === "Amarelo" ? "var(--yellow)" : "var(--red)";
-  document.getElementById("heroMessage").textContent = data.signal === "Verde" ? "O plano fecha para a data de voces." : data.signal === "Amarelo" ? "Esta quase fechando, falta ajustar um pouco." : "A meta precisa de um novo combinado.";
+  document.getElementById("heroMessage").textContent = data.signal === "Verde" ? state.texts.heroGreen : data.signal === "Amarelo" ? state.texts.heroYellow : state.texts.heroRed;
   document.getElementById("heroSub").textContent = `Meta atual ${money.format(data.goalTotal)}: ${money.format(data.furnitureTotal)} em itens que faltam + ${money.format(state.goal.extraGoal)} de custos extras.`;
   document.getElementById("goalPercent").textContent = `${Math.round(data.percent)}%`;
   document.getElementById("goalProgress").style.width = `${data.percent}%`;
@@ -289,6 +346,10 @@ function renderFurniture() {
     return `<article class="metric-card"><span>${category}</span><strong>${missing.length} faltam</strong><small>${have.length} ja tem/comprado</small></article>`;
   }).join("");
   document.getElementById("categorySummary").innerHTML = categoryRows;
+  const missingItems = state.furniture.filter(item => item.status === "Falta comprar");
+  const ownedItems = state.furniture.filter(item => item.status === "Ja tenho" || item.status === "Comprado");
+  document.getElementById("missingChecklist").innerHTML = missingItems.map(item => checklistRow(item, false)).join("") || "<p>Nenhum item faltando.</p>";
+  document.getElementById("ownedChecklist").innerHTML = ownedItems.map(item => checklistRow(item, true)).join("") || "<p>Nada marcado como ja tenho.</p>";
 
   document.querySelectorAll(".item-card[data-id]").forEach(card => {
     card.draggable = editing;
@@ -310,6 +371,14 @@ function renderFurniture() {
 
   const select = document.getElementById("budgetItemSelect");
   select.innerHTML = state.furniture.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+}
+
+function checklistRow(item, checked) {
+  return `<label class="check-row">
+    <input type="checkbox" data-toggle-owned="${item.id}" ${checked ? "checked" : ""}>
+    <span>${item.name}</span>
+    <small>${item.category} - ${money.format(item.value || 0)}</small>
+  </label>`;
 }
 
 function furnitureCard(item) {
@@ -343,12 +412,21 @@ function renderFinance() {
   document.getElementById("personList").innerHTML = state.people.map(person => `
     <article class="item-card">
       <strong>${person.name}</strong>
-      <span>Receita: ${money.format(person.income || 0)}</span>
+      <span>Receitas: ${money.format(incomeForPerson(person.name))}</span>
       <span>Gastos fixos: ${money.format(person.fixedCosts || 0)}</span>
-      <span>Sobra individual: ${money.format(Number(person.income || 0) - Number(person.fixedCosts || 0))}</span>
+      <span>Sobra individual: ${money.format(incomeForPerson(person.name) - Number(person.fixedCosts || 0))}</span>
       <div class="row-actions"><button data-edit-person="${person.id}">Editar</button><button data-delete-person="${person.id}">Excluir</button></div>
     </article>
   `).join("");
+
+  document.getElementById("incomeList").innerHTML = state.incomes.map(entry => `
+    <article class="item-card">
+      <strong>${entry.person}</strong>
+      <span>${entry.type}</span>
+      <span>${money.format(entry.amount || 0)}</span>
+      <div class="row-actions"><button data-edit-income="${entry.id}">Editar</button><button data-delete-income="${entry.id}">Excluir</button></div>
+    </article>
+  `).join("") || `<div class="result-card">Cadastre salario, vale alimentacao, extras e beneficios.</div>`;
 
   const data = calc();
   document.getElementById("financeCards").innerHTML = [
@@ -357,6 +435,36 @@ function renderFinance() {
     ["Dividas minimas", money.format(debtMonthlyTotal())],
     ["Sobra mensal", money.format(data.surplus)]
   ].map(([label, value]) => `<article class="metric-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
+}
+
+function incomeForPerson(name) {
+  return state.incomes.filter(entry => entry.person === name).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+}
+
+function renderHomeCosts() {
+  const data = calc();
+  const costs = state.homeCosts;
+  const homeTotal = Object.values(costs).reduce((sum, value) => sum + Number(value || 0), 0);
+  const availableAfterGoal = data.surplus - Number(state.goal.plannedMonthly || 0);
+  const recommendedRent = Math.max(0, Math.min(data.income * 0.3, availableAfterGoal - (homeTotal - Number(costs.rent || 0))));
+  const balance = availableAfterGoal - homeTotal;
+  document.getElementById("homeCostCards").innerHTML = [
+    ["Sobra antes da moradia", money.format(data.surplus)],
+    ["Depois de guardar para meta", money.format(availableAfterGoal)],
+    ["Custo previsto da casa", money.format(homeTotal)],
+    ["Aluguel ideal maximo", money.format(recommendedRent)]
+  ].map(([label, value]) => `<article class="metric-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
+
+  const totalIncome = Math.max(1, data.income);
+  document.getElementById("homeCostSplit").innerHTML = state.people.map(person => {
+    const ratio = incomeForPerson(person.name) / totalIncome;
+    return `<article class="item-card">
+      <strong>${person.name}</strong>
+      <span>Participacao sugerida: ${Math.round(ratio * 100)}%</span>
+      <span>Parte da moradia: ${money.format(homeTotal * ratio)}</span>
+      <span>Saldo do casal depois: ${money.format(balance)}</span>
+    </article>`;
+  }).join("");
 }
 
 function renderDebts() {
@@ -387,6 +495,25 @@ function renderSettings() {
     const names = { saved: "Cofrinho", missing: "Falta", monthly: "Necessario por mes", furniture: "Itens que faltam" };
     return `<div class="compact-row"><strong>${names[key]}</strong><div class="row-actions"><button data-move="${index}" data-dir="-1">Subir</button><button data-move="${index}" data-dir="1">Descer</button></div></div>`;
   }).join("");
+
+  const labels = {
+    brandSubtitle: "Subtitulo da marca",
+    dashboardTitle: "Titulo Inicio",
+    furnitureTitle: "Titulo Moveis",
+    budgetTitle: "Titulo Orcamentos",
+    financeTitle: "Titulo Financeiro",
+    debtsTitle: "Titulo Dividas",
+    homeCostsTitle: "Titulo Moradia",
+    simulatorTitle: "Titulo Simulador",
+    settingsTitle: "Titulo Editar app",
+    heroGreen: "Frase farol verde",
+    heroYellow: "Frase farol amarelo",
+    heroRed: "Frase farol vermelho",
+    cofrinhoTitle: "Titulo Cofrinho"
+  };
+  document.getElementById("textForm").innerHTML = Object.entries(labels).map(([key, label]) => `
+    <label>${label}<input name="${key}" value="${state.texts[key] || ""}"></label>
+  `).join("") + `<button type="submit">Salvar textos</button>`;
 }
 
 function compactRow(left, right) {
@@ -481,10 +608,21 @@ document.getElementById("budgetForm").addEventListener("submit", event => {
 document.getElementById("personForm").addEventListener("submit", event => {
   event.preventDefault();
   const form = event.currentTarget;
-  const entry = { id: form.elements.id.value || crypto.randomUUID(), name: form.name.value, income: Number(form.income.value), fixedCosts: Number(form.fixedCosts.value) };
+  const entry = { id: form.elements.id.value || crypto.randomUUID(), name: form.name.value, fixedCosts: Number(form.fixedCosts.value) };
   const existing = state.people.find(item => item.id === entry.id);
   if (existing) Object.assign(existing, entry); else state.people.push(entry);
   clearForm(form, "cancelPersonEdit");
+  saveState();
+  render();
+});
+
+document.getElementById("incomeForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const entry = { id: form.elements.id.value || crypto.randomUUID(), person: form.person.value, type: form.type.value, amount: Number(form.amount.value) };
+  const existing = state.incomes.find(item => item.id === entry.id);
+  if (existing) Object.assign(existing, entry); else state.incomes.push(entry);
+  clearForm(form, "cancelIncomeEdit");
   saveState();
   render();
 });
@@ -502,6 +640,21 @@ document.getElementById("debtForm").addEventListener("submit", event => {
 
 document.getElementById("debtTypeSelect").addEventListener("change", event => {
   document.getElementById("debtForm").group.value = groupForDebtType(event.target.value);
+});
+
+document.getElementById("homeCostForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  state.homeCosts = {
+    rent: Number(form.rent.value),
+    water: Number(form.water.value),
+    power: Number(form.power.value),
+    internet: Number(form.internet.value),
+    groceries: Number(form.groceries.value),
+    other: Number(form.other.value)
+  };
+  saveState();
+  render();
 });
 
 document.getElementById("simForm").addEventListener("submit", event => {
@@ -528,6 +681,17 @@ document.getElementById("settingsForm").addEventListener("submit", event => {
   render();
 });
 
+document.getElementById("textForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  Object.keys(state.texts).forEach(key => {
+    if (form.elements[key]) state.texts[key] = form.elements[key].value;
+  });
+  state.settings.homeTitle = state.texts.dashboardTitle;
+  saveState();
+  render();
+});
+
 document.getElementById("resetApp").addEventListener("click", () => {
   state = structuredClone(defaultState);
   saveState();
@@ -543,6 +707,7 @@ document.addEventListener("click", event => {
     ["editFurniture", state.furniture, "furnitureForm", "cancelFurnitureEdit"],
     ["editBudget", state.budgets, "budgetForm", "cancelBudgetEdit"],
     ["editPerson", state.people, "personForm", "cancelPersonEdit"],
+    ["editIncome", state.incomes, "incomeForm", "cancelIncomeEdit"],
     ["editDebt", state.debts, "debtForm", "cancelDebtEdit"]
   ];
 
@@ -565,6 +730,7 @@ document.addEventListener("click", event => {
     ["deleteFurniture", state.furniture],
     ["deleteBudget", state.budgets],
     ["deletePerson", state.people],
+    ["deleteIncome", state.incomes],
     ["deleteDebt", state.debts]
   ];
 
@@ -577,6 +743,16 @@ document.addEventListener("click", event => {
       return;
     }
   }
+
+  const ownedId = target.dataset.toggleOwned;
+  if (ownedId) {
+    const item = state.furniture.find(entry => entry.id === ownedId);
+    if (item) {
+      item.status = target.checked ? "Ja tenho" : "Falta comprar";
+      saveState();
+      render();
+    }
+  }
 });
 
 [
@@ -584,6 +760,7 @@ document.addEventListener("click", event => {
   ["cancelFurnitureEdit", "furnitureForm"],
   ["cancelBudgetEdit", "budgetForm"],
   ["cancelPersonEdit", "personForm"],
+  ["cancelIncomeEdit", "incomeForm"],
   ["cancelDebtEdit", "debtForm"]
 ].forEach(([buttonId, formId]) => {
   document.getElementById(buttonId).addEventListener("click", () => {
