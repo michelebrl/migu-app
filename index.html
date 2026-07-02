@@ -31,7 +31,7 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Junho de 2026</p>
+            <p class="eyebrow">Julho de 2026</p>
             <h1 id="screenTitle">Inicio</h1>
           </div>
           <div class="top-actions">
@@ -45,7 +45,7 @@
             <div>
               <p class="eyebrow">Meta do casal</p>
               <h2 id="heroMessage">O ape de voces esta tomando forma.</h2>
-              <p id="heroSub">Atualize os valores e veja se o plano fecha na data.</p>
+              <p id="heroSub">A meta muda conforme a lista de itens que faltam.</p>
             </div>
             <div class="signal" id="goalSignal">
               <span>Farol</span>
@@ -63,40 +63,61 @@
               </div>
               <div class="progress"><span id="goalProgress"></span></div>
               <form class="form-grid" id="goalForm">
-                <label>Meta total<input name="goalTotal" type="number" min="0"></label>
-                <label>Valor guardado<input name="savedTotal" type="number" min="0"></label>
+                <label>Custos extras da mudanca<input name="extraGoal" type="number" min="0"></label>
                 <label>Data da mudanca<input name="moveDate" type="date"></label>
-                <label>Aporte mensal<input name="monthlySaving" type="number" min="0"></label>
+                <label>Aporte planejado por mes<input name="plannedMonthly" type="number" min="0"></label>
+                <div class="field-note">Aporte planejado e quanto voces combinam guardar por mes. O valor guardado vem do cofrinho.</div>
                 <button type="submit">Salvar meta</button>
               </form>
             </section>
 
             <section class="panel">
               <div class="panel-head">
-                <h3>Proximas compras</h3>
-                <span id="pendingCount">0 itens</span>
+                <h3>Cofrinho</h3>
+                <span id="savingsTotal">R$ 0,00</span>
               </div>
-              <div class="compact-list" id="quickFurniture"></div>
+              <form class="form-grid compact-form" id="savingForm">
+                <input type="hidden" name="id">
+                <label>Quem guardou<select name="person" id="savingPersonSelect"></select></label>
+                <label>Valor<input name="amount" type="number" min="0" required></label>
+                <label>Motivo<input name="note" placeholder="Salario, extra, presente"></label>
+                <label>Data<input name="date" type="date"></label>
+                <button type="submit">Guardar</button>
+                <button type="button" id="cancelSavingEdit" class="secondary hidden-field">Cancelar</button>
+              </form>
+              <div class="compact-list" id="savingsList"></div>
             </section>
           </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Proximas compras</h3>
+              <span id="pendingCount">0 itens</span>
+            </div>
+            <div class="compact-list" id="quickFurniture"></div>
+          </section>
         </section>
 
         <section class="view" id="furniture">
           <div class="panel">
             <div class="panel-head">
               <h3>Moveis e itens</h3>
-              <span>Arraste pelo status no modo edicao</span>
+              <span>Separe o que ja tem e o que falta comprar</span>
             </div>
             <form class="form-grid wide" id="furnitureForm">
+              <input type="hidden" name="id">
               <label>Item<input name="name" required placeholder="Sofa, cama, geladeira"></label>
-              <label>Categoria<input name="category" placeholder="Sala"></label>
+              <label>Categoria<select name="category" id="furnitureCategorySelect"></select></label>
               <label>Valor<input name="value" type="number" min="0"></label>
+              <label>Status<select name="status"><option>Falta comprar</option><option>Ja tenho</option><option>Comprado</option></select></label>
               <label>Link<input name="link" type="url" placeholder="https://"></label>
               <label>Imagem<input name="image" type="url" placeholder="URL da imagem"></label>
               <label>Prioridade<select name="priority"><option>Essencial</option><option>Importante</option><option>Depois</option></select></label>
-              <button type="submit">Adicionar item</button>
+              <button type="submit">Salvar item</button>
+              <button type="button" id="cancelFurnitureEdit" class="secondary hidden-field">Cancelar</button>
             </form>
           </div>
+          <div class="category-summary" id="categorySummary"></div>
           <div class="kanban" id="furnitureBoard"></div>
         </section>
 
@@ -107,13 +128,15 @@
               <span>Compare opcoes por item</span>
             </div>
             <form class="form-grid wide" id="budgetForm">
+              <input type="hidden" name="id">
               <label>Item<select name="itemId" id="budgetItemSelect"></select></label>
               <label>Loja<input name="store" required></label>
               <label>Produto<input name="product" type="number" min="0"></label>
               <label>Frete<input name="shipping" type="number" min="0"></label>
               <label>Link<input name="link" type="url"></label>
               <label>Imagem<input name="image" type="url"></label>
-              <button type="submit">Adicionar orcamento</button>
+              <button type="submit">Salvar orcamento</button>
+              <button type="button" id="cancelBudgetEdit" class="secondary hidden-field">Cancelar</button>
             </form>
           </div>
           <div class="grid cards" id="budgetList"></div>
@@ -122,17 +145,19 @@
         <section class="view" id="finance">
           <div class="panel">
             <div class="panel-head">
-              <h3>Financeiro mensal</h3>
-              <span>Controle manual do casal</span>
+              <h3>Pessoas</h3>
+              <span>Receitas e gastos separados</span>
             </div>
-            <form class="form-grid" id="financeForm">
-              <label>Receita pessoa 1<input name="incomeA" type="number" min="0"></label>
-              <label>Receita pessoa 2<input name="incomeB" type="number" min="0"></label>
+            <form class="form-grid wide" id="personForm">
+              <input type="hidden" name="id">
+              <label>Nome<input name="name" required placeholder="Mi"></label>
+              <label>Receita mensal<input name="income" type="number" min="0"></label>
               <label>Gastos fixos<input name="fixedCosts" type="number" min="0"></label>
-              <label>Pagamentos de dividas<input name="debtPayments" type="number" min="0"></label>
-              <button type="submit">Salvar financeiro</button>
+              <button type="submit">Salvar pessoa</button>
+              <button type="button" id="cancelPersonEdit" class="secondary hidden-field">Cancelar</button>
             </form>
           </div>
+          <div class="grid cards" id="personList"></div>
           <div class="grid metrics" id="financeCards"></div>
         </section>
 
@@ -140,18 +165,23 @@
           <div class="panel">
             <div class="panel-head">
               <h3>Dividas</h3>
-              <span>Plano para quitar ate uma data</span>
+              <span>Classifique por grupo e essencialidade</span>
             </div>
             <form class="form-grid wide" id="debtForm">
+              <input type="hidden" name="id">
               <label>Nome<input name="name" required></label>
-              <label>Responsavel<input name="owner" placeholder="Mi ou Gu"></label>
+              <label>Responsavel<select name="owner" id="debtOwnerSelect"></select></label>
+              <label>Tipo<select name="type" id="debtTypeSelect"></select></label>
+              <label>Grupo<select name="group"><option value="Essencial">Essencial</option><option value="Nao essencial">Nao essencial</option></select></label>
               <label>Valor total<input name="total" type="number" min="0"></label>
               <label>Valor pago<input name="paid" type="number" min="0"></label>
               <label>Parcela minima<input name="minimum" type="number" min="0"></label>
               <label>Quitar ate<input name="dueDate" type="date"></label>
-              <button type="submit">Adicionar divida</button>
+              <button type="submit">Salvar divida</button>
+              <button type="button" id="cancelDebtEdit" class="secondary hidden-field">Cancelar</button>
             </form>
           </div>
+          <div class="debt-groups" id="debtGroups"></div>
           <div class="grid cards" id="debtList"></div>
         </section>
 
@@ -198,6 +228,6 @@
       </main>
     </div>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=migu-financeiro-listas-20260702"></script>
   </body>
 </html>
